@@ -1,0 +1,52 @@
+/* Mercado FIPP: complementos ao Bootstrap. Paleta inspirada em vitrines de supermercado online (azul + vermelho). */
+:root {
+    --mf-azul: #12409e;
+    --mf-azul-escuro: #0b2a6b;
+    --mf-vermelho: #e4002b;
+    --mf-fundo: #f3f5fa;
+    --mf-borda: #dde3ef;
+}
+
+body { background: var(--mf-fundo); }
+
+/* Barra do topo */
+.navbar-mf { background: var(--mf-azul); }
+.navbar-mf .navbar-brand { color: #fff; font-size: 1.35rem; }
+.navbar-mf .form-control { border-right: 0; }
+.btn-mf-busca { background: var(--mf-vermelho); color: #fff; border: 0; padding-inline: 1.1rem; }
+.btn-mf-busca:hover, .btn-mf-busca:focus { background: #c10024; color: #fff; }
+
+/* Botão principal */
+.btn-mf { background: var(--mf-azul); border-color: var(--mf-azul); color: #fff; }
+.btn-mf:hover, .btn-mf:focus { background: var(--mf-azul-escuro); border-color: var(--mf-azul-escuro); color: #fff; }
+
+/* Login */
+.fundo-login { background: linear-gradient(135deg, var(--mf-azul-escuro), var(--mf-azul) 55%, #2f6bdc); }
+.cartao-login { max-width: 900px; border: 0; border-radius: 1rem; }
+.painel-marca { background: linear-gradient(160deg, var(--mf-azul), var(--mf-azul-escuro)); }
+
+/* Vitrine */
+.banner {
+    background: linear-gradient(100deg, var(--mf-azul), #2f6bdc);
+    border-radius: .75rem;
+    padding: 1.5rem 1.75rem;
+    border-bottom: 4px solid var(--mf-vermelho);
+}
+
+.chip { background: #fff; border: 1px solid var(--mf-borda); color: var(--mf-azul); border-radius: 999px; }
+.chip:hover { background: #e8eefc; }
+.chip-ativo, .chip-ativo:hover { background: var(--mf-azul); border-color: var(--mf-azul); color: #fff; }
+
+.cartao-anuncio { border: 1px solid var(--mf-borda); border-radius: .75rem; overflow: hidden; transition: box-shadow .15s, transform .15s; }
+.cartao-anuncio:hover { box-shadow: 0 .5rem 1.25rem rgba(18, 64, 158, .18); transform: translateY(-2px); }
+.foto, .foto-detalhe { object-fit: cover; }
+.badge-categoria { background: #e8eefc; color: var(--mf-azul); font-weight: 600; }
+
+.preco { color: var(--mf-vermelho); font-weight: 800; font-size: 1.3rem; }
+.preco-grande { font-size: 2rem; }
+
+/* Detalhe do anúncio */
+.painel-preco { border-top: 4px solid var(--mf-vermelho); }
+.descricao { white-space: pre-line; }
+.resposta { margin-left: 1.5rem; padding: .5rem .75rem; background: #eef3ff; border-radius: .5rem; color: var(--mf-azul-escuro); }
+.breadcrumb a { color: var(--mf-azul); }

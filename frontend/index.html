@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mercado FIPP</title>
+</head>
+<body>
+<!-- Página de entrada: leva ao login, ou direto aos anúncios se já houver sessão válida -->
+<script src="js/sessao.js"></script>
+<script>
+    location.replace(Sessao.logado() ? 'paginas/anuncios.html' : 'paginas/login.html');
+</script>
+<noscript><a href="paginas/login.html">Entrar no Mercado FIPP</a></noscript>
+</body>
+</html>

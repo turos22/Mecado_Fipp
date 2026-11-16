@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Anúncios · Mercado FIPP</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/css/bootstrap.min.css"
+          integrity="sha384-yEPZ7jP9S0QKiUQ0m3jjsO4ProIW7wvR9gXkI7JOGa2XVsw53Yke2bsdkBbjmmiX" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css"
+          integrity="sha384-nWN3KqaaVcbEsCjLSV+2jMjh62Iny/+mN3srM8TZeM8N6aj7eDl5wwYggjAJ4/sJ" crossorigin="anonymous">
+    <link rel="stylesheet" href="../estilo/estilo.css">
+</head>
+<body>
+<header id="cabecalho"></header>
+
+<main class="container py-4">
+    <section class="banner mb-4 text-white">
+        <h1 class="h3 fw-bold mb-1">Ofertas entre alunos da FIPP</h1>
+        <p class="mb-0">Anúncios de produtos novos e usados, organizados por categoria.</p>
+    </section>
+
+    <div id="aviso" class="mb-3" aria-live="polite"></div>
+
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <div id="categorias" class="d-flex flex-wrap gap-2 flex-grow-1" aria-label="Categorias"></div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="ordem" class="text-muted small text-nowrap">Ordenar por</label>
+            <select id="ordem" class="form-select form-select-sm">
+                <option value="recentes">Mais recentes</option>
+                <option value="menor">Menor preço</option>
+                <option value="maior">Maior preço</option>
+                <option value="nome">Nome (A–Z)</option>
+            </select>
+        </div>
+    </div>
+
+    <p id="contador" class="text-muted small mb-2" aria-live="polite"></p>
+    <div id="lista" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-WyOxWvTyr1QaMPfiPJSv76iReVthorl5uWlFtZPyK0IEB0hGzo9y5Bp9mYanr8Bu" crossorigin="anonymous"></script>
+<script src="../js/config.js"></script>
+<script src="../js/util.js"></script>
+<script src="../js/sessao.js"></script>
+<script src="../js/http.js"></script>
+<script src="../js/cabecalho.js"></script>
+<script src="../js/controller/anuncioController.js"></script>
+<script src="../js/paginas/anuncios.js"></script>
+</body>
+</html>
