@@ -106,7 +106,7 @@ Se o Java 25 não estiver instalado no sistema, aponte para o JDK do projeto ant
 
 ## Recompilar o adaptar.exe
 
-Precisa do [Go](https://go.dev/dl/) (qualquer sistema):
+**Só quem for alterar o código do instalador precisa disto.** Para usar o `adaptar.exe` (ou o `adaptar.sh`) **não é preciso ter Go**: o `.exe` já vem compilado e roda sozinho. Para recompilar é preciso o [Go](https://go.dev/dl/) (qualquer sistema):
 
 ```bash
 cd ferramentas/adaptar
