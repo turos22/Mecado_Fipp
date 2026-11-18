@@ -364,4 +364,13 @@ class UsuarioAnuncioRestControllerTest {
         como(DONO, respond("9103", null)).andExpect(status().isBadRequest());
         assertEquals("0", coluna("select count(*) from pergunta_anuncio where per_resp is not null"));
     }
+
+    @Test
+    void semTokenAsRotasNovasDao401() throws Exception {
+        mvc.perform(novo("{}")).andExpect(status().isUnauthorized());
+        mvc.perform(fotos("9101", arquivo("image/jpeg"))).andExpect(status().isUnauthorized());
+        mvc.perform(delete(BASE).param("id", "9101")).andExpect(status().isUnauthorized());
+        mvc.perform(ask("9101", "x")).andExpect(status().isUnauthorized());
+        mvc.perform(respond("9101", "x")).andExpect(status().isUnauthorized());
+    }
 }
