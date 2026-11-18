@@ -32,7 +32,6 @@ public class AnuncioService {
 
     private static final BigDecimal PRECO_MAXIMO = new BigDecimal("999999999.9"); //numeric(10,1)
 
-    //as fotos ficam aqui (relativo à pasta do backend) e saem em /fotos/{fot_file}, ver spring.web.resources.static-locations
     private static final Path PASTA_FOTOS = Path.of("uploads", "fotos");
     private static final Map<String, String> EXTENSOES = Map.of(
             "image/jpeg", ".jpg", "image/png", ".png", "image/gif", ".gif", "image/webp", ".webp");
@@ -70,7 +69,6 @@ public class AnuncioService {
         return anuncios;
     }
 
-    // Cria um anúncio do usuário (a data é a de hoje). Dado inválido: IllegalArgumentException com o texto para o usuário.
     @Transactional
     public Anuncio criar(Integer usrId, EdicaoAnuncio dados) {
         Anuncio anuncio = new Anuncio();
@@ -83,8 +81,6 @@ public class AnuncioService {
         return anuncio;
     }
 
-    // Edita um anúncio SE ele for do usuário. Vazio = não existe ou é de outro (o chamador responde igual nos dois casos).
-    // Dado inválido: IllegalArgumentException com o texto para o usuário.
     @Transactional
     public Optional<Anuncio> editar(Integer usrId, Integer anuId, EdicaoAnuncio dados) {
         Optional<Anuncio> encontrado = anuncioRepository.findByAnuIdAndUsrId(anuId, usrId);
@@ -97,8 +93,6 @@ public class AnuncioService {
         return Optional.of(anuncio);
     }
 
-    // Grava as fotos no disco e no anúncio, SE ele for do usuário. Vazio = não existe ou é de outro.
-    // Foto inválida (vazia ou que não é JPG/PNG/GIF/WEBP): IllegalArgumentException; nesse caso nada é gravado.
     @Transactional
     public Optional<Anuncio> adicionarFotos(Integer usrId, Integer anuId, List<MultipartFile> fotos) throws IOException {
         Optional<Anuncio> encontrado = anuncioRepository.findByAnuIdAndUsrId(anuId, usrId);
@@ -113,7 +107,6 @@ public class AnuncioService {
         List<String> gravados = new ArrayList<>();
         try {
             for (MultipartFile arquivo : arquivos) {
-                //nome sorteado (cabe em fot_file, 20): o nome enviado pelo cliente nunca vira caminho no disco
                 String nome = UUID.randomUUID().toString().replace("-", "").substring(0, 12) + extensao(arquivo);
                 try (InputStream entrada = arquivo.getInputStream()) {
                     Files.copy(entrada, PASTA_FOTOS.resolve(nome));
@@ -126,15 +119,13 @@ public class AnuncioService {
             }
             anuncioRepository.flush();
         } catch (IOException | RuntimeException e) {
-            gravados.forEach(this::apagarArquivo); //não deixa foto órfã no disco
+            gravados.forEach(this::apagarArquivo);
             throw e;
         }
         carregarFotosEPerguntas(anuncio);
         return Optional.of(anuncio);
     }
 
-    // Pergunta num anúncio de OUTRO usuário. false = o anúncio não existe.
-    // Texto vazio ou anúncio do próprio usuário: IllegalArgumentException com o texto para o usuário.
     @Transactional
     public boolean perguntar(Integer usrId, Integer anuId, String texto) {
         Optional<Anuncio> encontrado = anuncioRepository.findById(anuId);
@@ -150,8 +141,6 @@ public class AnuncioService {
         return true;
     }
 
-    // Responde uma pergunta SE o anúncio dela for do usuário. false = a pergunta não existe ou é de anúncio de outro.
-    // Texto vazio: IllegalArgumentException com o texto para o usuário.
     @Transactional
     public boolean responder(Integer usrId, Integer perId, String texto) {
         Optional<Anuncio> encontrado = anuncioRepository.buscarPorPerguntaEDono(perId, usrId);
@@ -169,13 +158,11 @@ public class AnuncioService {
         return apagar(anuncioRepository.findById(id));
     }
 
-    // Exclui um anúncio SE ele for do usuário. false = não existe ou é de outro.
     @Transactional
     public boolean excluirDoDono(Integer usrId, Integer id) {
         return apagar(anuncioRepository.findByAnuIdAndUsrId(id, usrId));
     }
 
-    // fotos e perguntas saem junto (cascade); os arquivos das fotos também
     private boolean apagar(Optional<Anuncio> encontrado) {
         encontrado.ifPresent(anuncio -> {
             List<String> arquivos = anuncio.getFotos().stream().map(FotoAnuncio::getFotFile).toList();
@@ -186,7 +173,6 @@ public class AnuncioService {
         return encontrado.isPresent();
     }
 
-    // valida os dados e passa para o anúncio; nada é alterado se algo estiver inválido
     private void aplicar(Anuncio anuncio, EdicaoAnuncio dados) {
         String titulo = dados.titulo() == null ? "" : dados.titulo().trim();
         if (titulo.isEmpty()) throw new IllegalArgumentException("Informe o título do anúncio");
@@ -210,7 +196,6 @@ public class AnuncioService {
         return aparado;
     }
 
-    //null = tipo de arquivo não aceito
     private String extensao(MultipartFile arquivo) {
         String tipo = arquivo.getContentType();
         return tipo == null ? null : EXTENSOES.get(tipo.toLowerCase(Locale.ROOT));

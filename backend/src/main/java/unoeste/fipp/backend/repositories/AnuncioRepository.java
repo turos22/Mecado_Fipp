@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import unoeste.fipp.backend.entities.Anuncio;
 
-// Sem implementação: o Spring Data JPA gera save, findById, existsById, deleteById, findAll... a partir desta interface.
 @Repository
 public interface AnuncioRepository extends JpaRepository<Anuncio, Integer> {
     List<Anuncio> findAllByOrderByAnuDateDescAnuIdDesc();

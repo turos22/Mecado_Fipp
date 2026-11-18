@@ -1,6 +1,4 @@
-// Visualização de um anúncio (paginas/anuncio.html?id=N)
-// Usa: GET get-id/{id} para mostrar; POST ask (pergunta de quem NÃO é o dono); POST respond (resposta do dono);
-// DELETE para excluir (administrador ou dono do anúncio). Quem decide de verdade é o backend: aqui só se escondem botões.
+
 if (Sessao.exigirLogin()) {
     Cabecalho.montar();
     const conteudo = document.getElementById('conteudo');
@@ -18,9 +16,7 @@ if (Sessao.exigirLogin()) {
         try {
             desenhar(await AnuncioController.buscar(id));
         } catch (erro) {
-            if (erro.status === 401) return; // a sessão já mandou para o login
-            // 404 com "texto" é o sistema dizendo que o anúncio não existe. 404 sem "texto" é o Spring
-            // dizendo que a ROTA não existe (o backend ainda não implementou o get-id).
+            if (erro.status === 401) return;
             const anuncioInexistente = erro.status === 404 && erro.dados && erro.dados.texto;
             if (anuncioInexistente) Util.alerta(conteudo, 'warning', 'Anúncio não encontrado. Ele pode ter sido excluído.');
             else if (erro.status === 404) Util.alerta(conteudo, 'danger', `O servidor ainda não tem a rota GET ${AnuncioController.base()}/get-id/{id} (erro 404).`);
@@ -28,12 +24,10 @@ if (Sessao.exigirLogin()) {
         }
     }
 
-    // Se a foto não carregar, troca pela imagem cinza
     conteudo.addEventListener('error', evento => {
         if (evento.target.tagName === 'IMG' && evento.target.src !== Util.SEM_FOTO) evento.target.src = Util.SEM_FOTO;
     }, true);
 
-    // Formulário de pergunta (comprador) e de resposta (dono): um só tratador, pois o HTML é refeito a cada recarga
     conteudo.addEventListener('submit', async evento => {
         const formulario = evento.target;
         const ehResposta = formulario.classList.contains('form-resposta');

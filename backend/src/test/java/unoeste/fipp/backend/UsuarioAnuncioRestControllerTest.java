@@ -38,8 +38,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import unoeste.fipp.backend.security.JWTTokenProvider;
 
-// Rotas do usuário logado (apis/usuario): ver anúncios (get-id, get-filter) e gerir os PRÓPRIOS (meus, PUT meus/{id}).
-// Dados 9xxx por SQL, desfeitos no fim.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -71,7 +69,6 @@ class UsuarioAnuncioRestControllerTest {
         sql("insert into foto_anuncio (fot_file, anu_id) values ('a.jpg', 9101)");
     }
 
-    // fotos gravadas pelos testes saem do disco (o banco é desfeito pelo @Transactional, o disco não)
     @AfterEach
     void limparFotos() throws Exception {
         for (Object nome : em.createNativeQuery("select fot_file from foto_anuncio where anu_id in (9101, 9102, 9103)").getResultList())
@@ -82,7 +79,6 @@ class UsuarioAnuncioRestControllerTest {
         return mvc.perform(r.header("Authorization", JWTTokenProvider.createToken("t" + usrId, "usuario", usrId)));
     }
 
-    // no Spring 7 o builder de multipart não herda de MockHttpServletRequestBuilder
     private ResultActions como(int usrId, MockMultipartHttpServletRequestBuilder r) throws Exception {
         return mvc.perform(r.header("Authorization", JWTTokenProvider.createToken("t" + usrId, "usuario", usrId)));
     }
