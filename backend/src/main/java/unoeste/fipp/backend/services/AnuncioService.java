@@ -134,9 +134,24 @@ public class AnuncioService {
 
     @Transactional
     public boolean excluir(Integer id) {
-        if (!anuncioRepository.existsById(id)) return false;
-        anuncioRepository.deleteById(id);
-        return true;
+        return apagar(anuncioRepository.findById(id));
+    }
+
+    // Exclui um anúncio SE ele for do usuário. false = não existe ou é de outro.
+    @Transactional
+    public boolean excluirDoDono(Integer usrId, Integer id) {
+        return apagar(anuncioRepository.findByAnuIdAndUsrId(id, usrId));
+    }
+
+    // fotos e perguntas saem junto (cascade); os arquivos das fotos também
+    private boolean apagar(Optional<Anuncio> encontrado) {
+        encontrado.ifPresent(anuncio -> {
+            List<String> arquivos = anuncio.getFotos().stream().map(FotoAnuncio::getFotFile).toList();
+            anuncioRepository.delete(anuncio);
+            anuncioRepository.flush();
+            arquivos.forEach(this::apagarArquivo);
+        });
+        return encontrado.isPresent();
     }
 
     // valida os dados e passa para o anúncio; nada é alterado se algo estiver inválido

@@ -5,7 +5,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -284,5 +286,32 @@ class UsuarioAnuncioRestControllerTest {
         como(DONO, fotos("9102")).andExpect(status().isBadRequest());
         como(DONO, fotos("9102", new MockMultipartFile("fotos", "v.jpg", "image/jpeg", new byte[0]))).andExpect(status().isBadRequest());
         assertEquals("0", coluna("select count(*) from foto_anuncio where anu_id = 9102"));
+    }
+
+    // ---- DELETE do próprio anúncio
+
+    @Test
+    void donoExcluiOProprioAnuncioComFotosEArquivos() throws Exception {
+        como(DONO, fotos("9101", arquivo("image/gif"))).andExpect(status().isOk());
+        String nome = coluna("select fot_file from foto_anuncio where anu_id = 9101 and fot_file <> 'a.jpg'");
+        assertTrue(Files.exists(PASTA_FOTOS.resolve(nome)));
+
+        como(DONO, delete(BASE).param("id", "9101")).andExpect(status().isOk());
+        em.flush();
+
+        assertEquals("0", coluna("select count(*) from anuncio where anu_id = 9101"));
+        assertEquals("0", coluna("select count(*) from foto_anuncio where anu_id = 9101"));
+        assertFalse(Files.exists(PASTA_FOTOS.resolve(nome)));
+        assertEquals("1", coluna("select count(*) from anuncio where anu_id = 9102"));
+    }
+
+    @Test
+    void ninguemExcluiAnuncioDeOutroNemInexistente() throws Exception {
+        como(DONO, delete(BASE).param("id", "9103")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.tipo").exists());
+        como(DONO, delete(BASE).param("id", "99999")).andExpect(status().isNotFound());
+        mvc.perform(delete(BASE).param("id", "9101").header("Authorization", JWTTokenProvider.createToken("adm", "admin", 1)))
+                .andExpect(status().isNotFound()); //admin por esta rota também só exclui o que é dele
+        assertEquals("3", coluna("select count(*) from anuncio where anu_id in (9101, 9102, 9103)"));
     }
 }

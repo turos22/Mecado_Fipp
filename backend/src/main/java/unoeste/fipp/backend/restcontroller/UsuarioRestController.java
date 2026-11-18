@@ -61,6 +61,14 @@ public class UsuarioRestController {
                 .<ResponseEntity<Object>>map(ResponseEntity::ok)
                 .orElseGet(() -> naoEncontrado(id));
     }
+    //http://localhost:8080/apis/usuario?id=2  (só exclui anúncio do próprio usuário)
+    @DeleteMapping
+    public ResponseEntity<Object> delete(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
+                                         @RequestParam Integer id){
+        if (!anuncioService.excluirDoDono(usrId, id))
+            return naoEncontrado(id);
+        return ResponseEntity.ok("Anuncio "+id+" deletado");
+    }
 
     //dado inválido vindo do serviço (o texto já é para o usuário)
     @ExceptionHandler(IllegalArgumentException.class)
