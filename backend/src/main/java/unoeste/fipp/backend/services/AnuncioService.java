@@ -2,6 +2,7 @@ package unoeste.fipp.backend.services;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -54,27 +55,27 @@ public class AnuncioService {
         return anuncios;
     }
 
+    // Cria um anúncio do usuário (a data é a de hoje). Dado inválido: IllegalArgumentException com o texto para o usuário.
+    @Transactional
+    public Anuncio criar(Integer usrId, EdicaoAnuncio dados) {
+        Anuncio anuncio = new Anuncio();
+        anuncio.setUsrId(usrId);
+        anuncio.setAnuDate(LocalDate.now());
+        aplicar(anuncio, dados);
+        anuncioRepository.saveAndFlush(anuncio);
+        entityManager.refresh(anuncio); //preenche cat_name e usr_name (@Formula)
+        carregarFotosEPerguntas(anuncio);
+        return anuncio;
+    }
+
     // Edita um anúncio SE ele for do usuário. Vazio = não existe ou é de outro (o chamador responde igual nos dois casos).
     // Dado inválido: IllegalArgumentException com o texto para o usuário.
     @Transactional
     public Optional<Anuncio> editar(Integer usrId, Integer anuId, EdicaoAnuncio dados) {
         Optional<Anuncio> encontrado = anuncioRepository.findByAnuIdAndUsrId(anuId, usrId);
         if (encontrado.isEmpty()) return encontrado;
-        String titulo = dados.titulo() == null ? "" : dados.titulo().trim();
-        if (titulo.isEmpty()) throw new IllegalArgumentException("Informe o título do anúncio");
-        if (titulo.length() > 80) throw new IllegalArgumentException("O título pode ter no máximo 80 caracteres");
-        if (dados.preco() == null) throw new IllegalArgumentException("Informe o preço");
-        BigDecimal preco = dados.preco().setScale(1, RoundingMode.HALF_UP); //a coluna guarda 1 casa decimal
-        if (preco.signum() < 0 || preco.compareTo(PRECO_MAXIMO) > 0)
-            throw new IllegalArgumentException("Preço fora do limite permitido");
-        if (dados.categoria() == null || !anuncioRepository.categoriaExiste(dados.categoria()))
-            throw new IllegalArgumentException("Categoria inexistente");
-
         Anuncio anuncio = encontrado.get();
-        anuncio.setAnuTitle(titulo);
-        anuncio.setAnuDesc(dados.descricao());
-        anuncio.setAnuPrice(preco);
-        anuncio.setCatId(dados.categoria());
+        aplicar(anuncio, dados);
         anuncioRepository.flush();
         entityManager.refresh(anuncio); //recalcula cat_name (@Formula)
         carregarFotosEPerguntas(anuncio);
@@ -86,6 +87,24 @@ public class AnuncioService {
         if (!anuncioRepository.existsById(id)) return false;
         anuncioRepository.deleteById(id);
         return true;
+    }
+
+    // valida os dados e passa para o anúncio; nada é alterado se algo estiver inválido
+    private void aplicar(Anuncio anuncio, EdicaoAnuncio dados) {
+        String titulo = dados.titulo() == null ? "" : dados.titulo().trim();
+        if (titulo.isEmpty()) throw new IllegalArgumentException("Informe o título do anúncio");
+        if (titulo.length() > 80) throw new IllegalArgumentException("O título pode ter no máximo 80 caracteres");
+        if (dados.preco() == null) throw new IllegalArgumentException("Informe o preço");
+        BigDecimal preco = dados.preco().setScale(1, RoundingMode.HALF_UP); //a coluna guarda 1 casa decimal
+        if (preco.signum() < 0 || preco.compareTo(PRECO_MAXIMO) > 0)
+            throw new IllegalArgumentException("Preço fora do limite permitido");
+        if (dados.categoria() == null || !anuncioRepository.categoriaExiste(dados.categoria()))
+            throw new IllegalArgumentException("Categoria inexistente");
+
+        anuncio.setAnuTitle(titulo);
+        anuncio.setAnuDesc(dados.descricao());
+        anuncio.setAnuPrice(preco);
+        anuncio.setCatId(dados.categoria());
     }
 
     private void carregarFotosEPerguntas(Anuncio anuncio) {

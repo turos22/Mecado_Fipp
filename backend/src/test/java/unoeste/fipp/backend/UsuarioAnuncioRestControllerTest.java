@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -184,5 +185,41 @@ class UsuarioAnuncioRestControllerTest {
     void adminTambemSoEditaOQueEDele() throws Exception {
         mvc.perform(editar(9101, "{\"anu_title\":\"a\",\"anu_desc\":\"d\",\"anu_price\":1,\"cat_id\":" + CAT + "}")
                 .header("Authorization", JWTTokenProvider.createToken("adm", "admin", 1))).andExpect(status().isNotFound());
+    }
+
+    // ---- POST de anúncio
+
+    private MockHttpServletRequestBuilder novo(String json) {
+        return post(BASE).contentType(MediaType.APPLICATION_JSON).content(json);
+    }
+
+    @Test
+    void criaAnuncioDoUsuarioDoTokenComDataDeHoje() throws Exception {
+        como(DONO, novo("{\"anu_title\":\"  Criado  \",\"anu_desc\":\"zzt novo\",\"anu_price\":12.34,\"cat_id\":" + CAT + ","
+                + "\"usr_id\":" + OUTRO + ",\"anu_date\":\"2000-01-01\",\"fotos\":[],\"perguntas\":[{\"per_text\":\"inventada\"}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anu_id").isNumber())
+                .andExpect(jsonPath("$.anu_title").value("Criado"))
+                .andExpect(jsonPath("$.anu_price").value(12.3))
+                .andExpect(jsonPath("$.usr_id").value(DONO))
+                .andExpect(jsonPath("$.usr_name").value("tstdono"))
+                .andExpect(jsonPath("$.cat_name").value("Tst Um"))
+                .andExpect(jsonPath("$.anu_date").value(java.time.LocalDate.now().toString()))
+                .andExpect(jsonPath("$.fotos", hasSize(0)))
+                .andExpect(jsonPath("$.perguntas", hasSize(0)));
+
+        assertEquals("1", coluna("select count(*) from anuncio where anu_title = 'Criado' and usr_id = " + DONO));
+        assertEquals("0", coluna("select count(*) from pergunta_anuncio where per_text = 'inventada'"));
+    }
+
+    @Test
+    void criarComDadoInvalidoDa400SemGravar() throws Exception {
+        como(DONO, novo("{\"anu_title\":\" \",\"anu_desc\":\"d\",\"anu_price\":1,\"cat_id\":" + CAT + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.tipo").exists()).andExpect(jsonPath("$.texto").exists());
+        como(DONO, novo("{\"anu_title\":\"t\",\"anu_desc\":\"d\",\"anu_price\":-1,\"cat_id\":" + CAT + "}")).andExpect(status().isBadRequest());
+        como(DONO, novo("{\"anu_title\":\"t\",\"anu_desc\":\"d\",\"anu_price\":1,\"cat_id\":987654}")).andExpect(status().isBadRequest());
+        como(DONO, novo("isto não é json")).andExpect(status().isBadRequest());
+        assertEquals("0", coluna("select count(*) from anuncio where anu_title = 't'"));
     }
 }

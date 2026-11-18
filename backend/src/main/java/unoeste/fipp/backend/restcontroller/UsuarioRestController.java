@@ -2,7 +2,6 @@ package unoeste.fipp.backend.restcontroller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import unoeste.fipp.backend.entities.Anuncio;
 import unoeste.fipp.backend.entities.EdicaoAnuncio;
 import unoeste.fipp.backend.entities.Erro;
 import unoeste.fipp.backend.security.AccessFilter;
@@ -18,10 +17,11 @@ public class UsuarioRestController {
         this.anuncioService = anuncioService;
     }
 
-    //http://localhost:8080/apis/usuario
+    //http://localhost:8080/apis/usuario  (o dono vem do token e a data é a de hoje)
     @PostMapping
-    public ResponseEntity<Object> novoAnuncio(@RequestBody Anuncio anuncio){
-        return ResponseEntity.ok("Anuncio criado com sucesso");
+    public ResponseEntity<Object> novoAnuncio(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
+                                              @RequestBody EdicaoAnuncio dados){
+        return ResponseEntity.ok(anuncioService.criar(usrId, dados));
     }
     //http://localhost:8080/apis/usuario/get-id/2
     @GetMapping("get-id/{id}")
@@ -44,13 +44,15 @@ public class UsuarioRestController {
     @PutMapping("meus/{id}")
     public ResponseEntity<Object> editar(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
                                          @PathVariable Integer id, @RequestBody EdicaoAnuncio dados){
-        try {
-            return anuncioService.editar(usrId, id, dados)
-                    .<ResponseEntity<Object>>map(ResponseEntity::ok)
-                    .orElseGet(() -> naoEncontrado(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new Erro("Dados inválidos", e.getMessage()));
-        }
+        return anuncioService.editar(usrId, id, dados)
+                .<ResponseEntity<Object>>map(ResponseEntity::ok)
+                .orElseGet(() -> naoEncontrado(id));
+    }
+
+    //dado inválido vindo do serviço (o texto já é para o usuário)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> dadoInvalido(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(new Erro("Dados inválidos", e.getMessage()));
     }
 
     private ResponseEntity<Object> naoEncontrado(Integer id) {
