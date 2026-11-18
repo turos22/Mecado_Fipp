@@ -9,8 +9,8 @@ class ErroHttp extends Error {
 
 const Http = {
     // opcoes: metodo ('GET' por padrão), form (objeto enviado como formulário), corpo (objeto enviado como JSON),
-    //         auth (false só no login)
-    async requisitar(rota, { metodo = 'GET', form = null, corpo = null, auth = true } = {}) {
+    //         arquivos (FormData, para enviar fotos), auth (false só no login)
+    async requisitar(rota, { metodo = 'GET', form = null, corpo = null, arquivos = null, auth = true } = {}) {
         const headers = {};
         let body;
 
@@ -21,7 +21,9 @@ const Http = {
             }
             headers['Authorization'] = Sessao.token(); // o AccessFilter do backend espera o token puro, sem "Bearer"
         }
-        if (form) {
+        if (arquivos) {
+            body = arquivos; // sem Content-Type: o navegador põe multipart/form-data com o separador certo
+        } else if (form) {
             headers['Content-Type'] = 'application/x-www-form-urlencoded';
             body = new URLSearchParams(form);   // a senha vai no corpo, não na URL
         } else if (corpo) {
