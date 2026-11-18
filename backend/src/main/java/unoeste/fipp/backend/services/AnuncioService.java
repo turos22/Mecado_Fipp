@@ -150,6 +150,20 @@ public class AnuncioService {
         return true;
     }
 
+    // Responde uma pergunta SE o anúncio dela for do usuário. false = a pergunta não existe ou é de anúncio de outro.
+    // Texto vazio: IllegalArgumentException com o texto para o usuário.
+    @Transactional
+    public boolean responder(Integer usrId, Integer perId, String texto) {
+        Optional<Anuncio> encontrado = anuncioRepository.buscarPorPerguntaEDono(perId, usrId);
+        if (encontrado.isEmpty()) return false;
+        String resposta = textoObrigatorio(texto, "Informe o texto da resposta");
+        encontrado.get().getPerguntas().stream()
+                .filter(p -> perId.equals(p.getPerId()))
+                .forEach(p -> p.setPerResp(resposta));
+        anuncioRepository.flush();
+        return true;
+    }
+
     @Transactional
     public boolean excluir(Integer id) {
         return apagar(anuncioRepository.findById(id));

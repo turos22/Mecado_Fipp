@@ -23,6 +23,9 @@ public interface AnuncioRepository extends JpaRepository<Anuncio, Integer> {
 
     List<Anuncio> findByUsrIdOrderByAnuDateDescAnuIdDesc(Integer usrId);
     Optional<Anuncio> findByAnuIdAndUsrId(Integer anuId, Integer usrId);
+    // o anúncio que contém a pergunta, SE for do usuário (só o dono responde)
+    @Query("select a from Anuncio a join a.perguntas p where p.perId = :perId and a.usrId = :usrId")
+    Optional<Anuncio> buscarPorPerguntaEDono(@Param("perId") Integer perId, @Param("usrId") Integer usrId);
     @Query(value = "select exists (select 1 from categoria where cat_id = :id)", nativeQuery = true)
     boolean categoriaExiste(@Param("id") Integer id);
 }

@@ -77,6 +77,14 @@ public class UsuarioRestController {
             return naoEncontrado(id);
         return ResponseEntity.ok("Pergunta enviada");
     }
+    //http://localhost:8080/apis/usuario/respond  (id = pergunta de um anúncio do próprio usuário, texto = a resposta)
+    @PostMapping("respond")
+    public ResponseEntity<Object> respond(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
+                                          @RequestParam Integer id, @RequestParam(required = false) String texto){
+        if (!anuncioService.responder(usrId, id, texto))
+            return ResponseEntity.status(404).body(new Erro("Não encontrado", "Pergunta " + id + " não encontrada nos seus anúncios"));
+        return ResponseEntity.ok("Pergunta respondida");
+    }
 
     //dado inválido vindo do serviço (o texto já é para o usuário)
     @ExceptionHandler(IllegalArgumentException.class)

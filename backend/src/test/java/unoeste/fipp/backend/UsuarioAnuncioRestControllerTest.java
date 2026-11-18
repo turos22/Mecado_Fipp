@@ -338,4 +338,30 @@ class UsuarioAnuncioRestControllerTest {
         como(OUTRO, ask("9101", null)).andExpect(status().isBadRequest());
         assertEquals("0", coluna("select count(*) from pergunta_anuncio where anu_id = 9101"));
     }
+
+    // ---- POST resposta (respond)
+
+    private MockHttpServletRequestBuilder respond(String id, String texto) {
+        var r = post(BASE + "/respond").param("id", id);
+        return texto == null ? r : r.param("texto", texto);
+    }
+
+    @Test
+    void donoRespondePerguntaDoProprioAnuncio() throws Exception {
+        sql("insert into pergunta_anuncio (per_id, per_text, anu_id) values (9101, 'Faz desconto?', 9101)");
+        como(DONO, respond("9101", "  Só no PIX  ")).andExpect(status().isOk());
+        assertEquals("Só no PIX", coluna("select per_resp from pergunta_anuncio where per_id = 9101"));
+        como(OUTRO, get(BASE + "/get-id/9101")).andExpect(jsonPath("$.perguntas[0].per_resp").value("Só no PIX"));
+    }
+
+    @Test
+    void ninguemRespondePerguntaDeAnuncioDeOutroNemInexistenteNemSemTexto() throws Exception {
+        sql("insert into pergunta_anuncio (per_id, per_text, anu_id) values (9102, 'Ainda tem?', 9103)");
+        sql("insert into pergunta_anuncio (per_id, per_text, anu_id) values (9103, 'Faz desconto?', 9101)");
+        como(DONO, respond("9102", "Tenho sim")).andExpect(status().isNotFound()).andExpect(jsonPath("$.tipo").exists());
+        como(DONO, respond("99999", "Tenho sim")).andExpect(status().isNotFound());
+        como(DONO, respond("9103", "  ")).andExpect(status().isBadRequest());
+        como(DONO, respond("9103", null)).andExpect(status().isBadRequest());
+        assertEquals("0", coluna("select count(*) from pergunta_anuncio where per_resp is not null"));
+    }
 }
