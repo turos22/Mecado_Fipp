@@ -124,6 +124,30 @@ class AccessFilterTest {
     }
 
     @Test
+    void usuarioComumLeAListaDeCategoriasParaOFormularioDeAnuncio() throws Exception {
+        AtomicBoolean chamada = new AtomicBoolean(false);
+        passar("/apis/adm/categoria/get-all", JWTTokenProvider.createToken("jao", "usuario", 2), chamada);
+        assertEquals(true, chamada.get());
+    }
+
+    @Test
+    void usuarioComumSoLeAListaDeCategoriasNaoMexeNelas() throws Exception {
+        String jao = JWTTokenProvider.createToken("jao", "usuario", 2);
+        for (String[] metodoERota : new String[][]{
+                {"POST", "/apis/adm/categoria"}, {"PUT", "/apis/adm/categoria"}, {"DELETE", "/apis/adm/categoria"},
+                {"GET", "/apis/adm/categoria/get-id/1"}, {"POST", "/apis/adm/categoria/get-all"},
+                {"GET", "/apis/adm/categoria/get-all/x"}}) {
+            AtomicBoolean chamada = new AtomicBoolean(false);
+            MockHttpServletRequest req = new MockHttpServletRequest(metodoERota[0], metodoERota[1]);
+            req.addHeader("Authorization", jao);
+            MockHttpServletResponse r = new MockHttpServletResponse();
+            filtro.doFilter(req, r, (q, s) -> chamada.set(true));
+            assertFalse(chamada.get(), metodoERota[0] + " " + metodoERota[1]);
+            assertEquals(403, r.getStatus(), metodoERota[0] + " " + metodoERota[1]);
+        }
+    }
+
+    @Test
     void usuarioComumNaRotaAdmDevolve403() throws Exception {
         AtomicBoolean chamada = new AtomicBoolean(false);
         MockHttpServletResponse r = passar("/apis/adm/anuncio?id=1", JWTTokenProvider.createToken("jao", "usuario", 2), chamada);
