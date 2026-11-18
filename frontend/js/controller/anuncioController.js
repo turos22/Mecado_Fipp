@@ -47,6 +47,7 @@ function normalizar(a) {
             .map(f => typeof f === 'string' ? f : pegar(f, 'fot_file', 'arquivo', 'file'))
             .filter(Boolean),
         perguntas: (pegar(a, 'perguntas', 'perguntaAnuncios') ?? []).map(p => ({
+            id: pegar(p, 'per_id', 'id'),
             texto: pegar(p, 'per_text', 'texto', 'text') ?? '',
             resposta: pegar(p, 'per_resp', 'resposta', 'answer')
         }))
@@ -99,8 +100,36 @@ const AnuncioController = {
         return normalizar(dados);
     },
 
-    // DELETE apis/adm/anuncio?id=ID (só administrador)
+    // POST apis/usuario: cria um anúncio SEU (o dono vem do token). Devolve o anúncio criado.
+    async criar({ titulo, descricao, preco, categoriaId }) {
+        const dados = await Http.requisitar(Config.ROTA_USUARIO, {
+            metodo: 'POST',
+            corpo: { anu_title: titulo, anu_desc: descricao, anu_price: preco, cat_id: categoriaId }
+        });
+        return normalizar(dados);
+    },
+
+    // POST apis/usuario/addFoto (formData: id + fotos): envia fotos para um anúncio SEU. Devolve o anúncio com as fotos.
+    async adicionarFotos(id, arquivos) {
+        const formData = new FormData();
+        formData.append('id', id);
+        for (const arquivo of arquivos) formData.append('fotos', arquivo);
+        const dados = await Http.requisitar(`${Config.ROTA_USUARIO}/addFoto`, { metodo: 'POST', arquivos: formData });
+        return normalizar(dados);
+    },
+
+    // POST apis/usuario/ask: pergunta em anúncio de OUTRO usuário
+    async perguntar(anuncioId, texto) {
+        await Http.requisitar(`${Config.ROTA_USUARIO}/ask`, { metodo: 'POST', form: { id: anuncioId, texto } });
+    },
+
+    // POST apis/usuario/respond: responde uma pergunta (id da PERGUNTA) de um anúncio SEU
+    async responder(perguntaId, texto) {
+        await Http.requisitar(`${Config.ROTA_USUARIO}/respond`, { metodo: 'POST', form: { id: perguntaId, texto } });
+    },
+
+    // DELETE ?id=ID. Administrador exclui qualquer anúncio (rota adm); os demais, só os próprios (rota usuario).
     async excluir(id) {
-        await Http.requisitar(`${Config.ROTA_ADM_ANUNCIO}?id=${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+        await Http.requisitar(`${this.base()}?id=${encodeURIComponent(id)}`, { metodo: 'DELETE' });
     }
 };
