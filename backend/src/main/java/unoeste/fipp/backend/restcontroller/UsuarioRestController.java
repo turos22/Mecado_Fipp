@@ -69,6 +69,14 @@ public class UsuarioRestController {
             return naoEncontrado(id);
         return ResponseEntity.ok("Anuncio "+id+" deletado");
     }
+    //http://localhost:8080/apis/usuario/ask  (id = anúncio de outro usuário, texto = a pergunta)
+    @PostMapping("ask")
+    public ResponseEntity<Object> ask(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
+                                      @RequestParam Integer id, @RequestParam(required = false) String texto){
+        if (!anuncioService.perguntar(usrId, id, texto))
+            return naoEncontrado(id);
+        return ResponseEntity.ok("Pergunta enviada");
+    }
 
     //dado inválido vindo do serviço (o texto já é para o usuário)
     @ExceptionHandler(IllegalArgumentException.class)

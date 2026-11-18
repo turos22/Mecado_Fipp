@@ -314,4 +314,28 @@ class UsuarioAnuncioRestControllerTest {
                 .andExpect(status().isNotFound()); //admin por esta rota também só exclui o que é dele
         assertEquals("3", coluna("select count(*) from anuncio where anu_id in (9101, 9102, 9103)"));
     }
+
+    // ---- POST pergunta (ask)
+
+    private MockHttpServletRequestBuilder ask(String id, String texto) {
+        var r = post(BASE + "/ask").param("id", id);
+        return texto == null ? r : r.param("texto", texto);
+    }
+
+    @Test
+    void perguntaEmAnuncioDeOutroFicaGravada() throws Exception {
+        como(OUTRO, ask("9101", "  Aceita troca?  ")).andExpect(status().isOk());
+        assertEquals("Aceita troca?", coluna("select per_text from pergunta_anuncio where anu_id = 9101"));
+        assertEquals("null", coluna("select per_resp from pergunta_anuncio where anu_id = 9101"));
+        como(OUTRO, get(BASE + "/get-id/9101")).andExpect(jsonPath("$.perguntas", hasSize(1)));
+    }
+
+    @Test
+    void naoPerguntaNoProprioAnuncioNemEmInexistenteNemSemTexto() throws Exception {
+        como(DONO, ask("9101", "Pergunta?")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.texto").exists());
+        como(OUTRO, ask("99999", "Pergunta?")).andExpect(status().isNotFound());
+        como(OUTRO, ask("9101", "   ")).andExpect(status().isBadRequest());
+        como(OUTRO, ask("9101", null)).andExpect(status().isBadRequest());
+        assertEquals("0", coluna("select count(*) from pergunta_anuncio where anu_id = 9101"));
+    }
 }

@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import unoeste.fipp.backend.entities.Anuncio;
 import unoeste.fipp.backend.entities.EdicaoAnuncio;
 import unoeste.fipp.backend.entities.FotoAnuncio;
+import unoeste.fipp.backend.entities.PerguntaAnuncio;
 import unoeste.fipp.backend.repositories.AnuncioRepository;
 
 @Service
@@ -132,6 +133,23 @@ public class AnuncioService {
         return Optional.of(anuncio);
     }
 
+    // Pergunta num anúncio de OUTRO usuário. false = o anúncio não existe.
+    // Texto vazio ou anúncio do próprio usuário: IllegalArgumentException com o texto para o usuário.
+    @Transactional
+    public boolean perguntar(Integer usrId, Integer anuId, String texto) {
+        Optional<Anuncio> encontrado = anuncioRepository.findById(anuId);
+        if (encontrado.isEmpty()) return false;
+        Anuncio anuncio = encontrado.get();
+        if (usrId.equals(anuncio.getUsrId()))
+            throw new IllegalArgumentException("Você não pode fazer perguntas no seu próprio anúncio");
+        PerguntaAnuncio pergunta = new PerguntaAnuncio();
+        pergunta.setPerText(textoObrigatorio(texto, "Informe o texto da pergunta"));
+        pergunta.setAnuncio(anuncio);
+        anuncio.getPerguntas().add(pergunta);
+        anuncioRepository.flush();
+        return true;
+    }
+
     @Transactional
     public boolean excluir(Integer id) {
         return apagar(anuncioRepository.findById(id));
@@ -170,6 +188,12 @@ public class AnuncioService {
         anuncio.setAnuDesc(dados.descricao());
         anuncio.setAnuPrice(preco);
         anuncio.setCatId(dados.categoria());
+    }
+
+    private String textoObrigatorio(String texto, String mensagem) {
+        String aparado = texto == null ? "" : texto.trim();
+        if (aparado.isEmpty()) throw new IllegalArgumentException(mensagem);
+        return aparado;
     }
 
     //null = tipo de arquivo não aceito
