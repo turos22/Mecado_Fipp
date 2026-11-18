@@ -1,6 +1,7 @@
 // Barra do topo, igual em todas as páginas logadas. Monta o HTML dentro de <header id="cabecalho">.
 const Cabecalho = {
-    // atual: 'inicio' ou 'meus', só para destacar o link da página onde se está
+    // atual: 'inicio', 'meus' ou 'categorias', só para destacar o link da página onde se está
+    // O link "Categorias" só aparece para o administrador (o backend barra os outros de qualquer jeito)
     montar(textoBusca = '', atual = 'inicio') {
         document.getElementById('cabecalho').innerHTML = `
             <nav class="navbar navbar-expand-md navbar-mf">
@@ -9,6 +10,7 @@ const Cabecalho = {
                     <ul class="navbar-nav flex-row gap-3 ms-md-3">
                         <li class="nav-item"><a class="nav-link text-white${atual === 'inicio' ? ' fw-bold' : ''}" href="anuncios.html">Início</a></li>
                         <li class="nav-item"><a class="nav-link text-white${atual === 'meus' ? ' fw-bold' : ''}" href="meus-anuncios.html"><i class="bi bi-pencil-square me-1"></i>Meus anúncios</a></li>
+                        ${Sessao.ehAdmin() ? `<li class="nav-item"><a class="nav-link text-white${atual === 'categorias' ? ' fw-bold' : ''}" href="categorias.html"><i class="bi bi-tags me-1"></i>Categorias</a></li>` : ''}
                     </ul>
                     <form id="form-busca" class="flex-grow-1 mx-md-4 my-2 my-md-0" role="search">
                         <div class="input-group">

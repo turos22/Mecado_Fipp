@@ -19,7 +19,7 @@ O CORS do backend já aceita qualquer origem, então a porta do front não impor
 ```
 frontend/
 ├── index.html            entrada: manda para o login, ou para os anúncios se já houver sessão
-├── paginas/              login.html · anuncios.html (vitrine, para todos) · anuncio.html (um anúncio) · meus-anuncios.html (editar os próprios)
+├── paginas/              login.html · anuncios.html (vitrine, para todos) · anuncio.html (um anúncio) · meus-anuncios.html (editar os próprios) · categorias.html (CRUD de categorias, só administrador)
 ├── estilo/estilo.css     complementos ao Bootstrap
 └── js/
     ├── config.js         endereço do backend e rotas
@@ -29,8 +29,9 @@ frontend/
     ├── cabecalho.js      barra do topo
     ├── controller/       conversa com o backend, uma rota por função
     │   ├── autenticacaoController.js
-    │   └── anuncioController.js
-    └── paginas/          código de cada tela (login.js, anuncios.js, anuncio.js, meus-anuncios.js)
+    │   ├── anuncioController.js
+    │   └── categoriaController.js
+    └── paginas/          código de cada tela (login.js, anuncios.js, anuncio.js, meus-anuncios.js, categorias.js)
 ```
 
 Regra: a página chama o `controller`, o `controller` chama o `Http`. A página nunca usa `fetch` direto.
@@ -45,6 +46,7 @@ Regra: a página chama o `controller`, o `controller` chama o `Http`. A página 
 | Meus anúncios | `GET apis/usuario/meus` (o dono vem do token) |
 | Editar o meu anúncio | `PUT apis/usuario/meus/{id}` com `{anu_title, anu_desc, anu_price, cat_id}`; anúncio de outro = 404 |
 | Excluir (só administrador) | `DELETE apis/adm/anuncio?id={id}` |
+| Categorias (só administrador) | `GET apis/adm/categoria/get-all` · `POST` e `PUT apis/adm/categoria` com `{cat_id, cat_name}` · `DELETE apis/adm/categoria?id={id}` (400 se houver anúncios) |
 
 O token vai no cabeçalho `Authorization`, sem `Bearer` (é o que o `AccessFilter` do backend lê).
 
