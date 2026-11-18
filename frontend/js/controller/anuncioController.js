@@ -47,6 +47,7 @@ function normalizar(a) {
             .map(f => typeof f === 'string' ? f : pegar(f, 'fot_file', 'arquivo', 'file'))
             .filter(Boolean),
         perguntas: (pegar(a, 'perguntas', 'perguntaAnuncios') ?? []).map(p => ({
+            id: pegar(p, 'per_id', 'id'),
             texto: pegar(p, 'per_text', 'texto', 'text') ?? '',
             resposta: pegar(p, 'per_resp', 'resposta', 'answer')
         }))
@@ -64,7 +65,6 @@ const AnuncioController = {
         return Sessao.ehAdmin() ? Config.ROTA_ADM_ANUNCIO : Config.ROTA_USUARIO;
     },
 
-    // GET .../get-filter/{filtro} -> lista de anúncios. Texto vazio = todos.
     async filtrar(texto) {
         const filtro = texto.trim() || Config.FILTRO_TODOS;
         const dados = await Http.requisitar(`${this.base()}/get-filter/${encodeURIComponent(filtro)}`);
@@ -74,7 +74,6 @@ const AnuncioController = {
         return dados.map(normalizar);
     },
 
-    // GET .../get-id/{id} -> um anúncio
     async buscar(id) {
         const dados = await Http.requisitar(`${this.base()}/get-id/${encodeURIComponent(id)}`);
         if (!dados || typeof dados !== 'object' || Array.isArray(dados)) {
@@ -83,14 +82,12 @@ const AnuncioController = {
         return normalizar(dados);
     },
 
-    // GET apis/usuario/meus -> só os anúncios de quem está logado (o backend lê o dono do token)
     async meus() {
         const dados = await Http.requisitar(`${Config.ROTA_USUARIO}/meus`);
         if (!Array.isArray(dados)) throw new ErroHttp(0, 'O servidor devolveu a lista de anúncios de um jeito inesperado.');
         return dados.map(normalizar);
     },
 
-    // PUT apis/usuario/meus/{id}: edita título, descrição, preço e categoria de um anúncio SEU
     async editar(id, { titulo, descricao, preco, categoriaId }) {
         const dados = await Http.requisitar(`${Config.ROTA_USUARIO}/meus/${encodeURIComponent(id)}`, {
             metodo: 'PUT',
@@ -99,8 +96,31 @@ const AnuncioController = {
         return normalizar(dados);
     },
 
-    // DELETE apis/adm/anuncio?id=ID (só administrador)
+    async criar({ titulo, descricao, preco, categoriaId }) {
+        const dados = await Http.requisitar(Config.ROTA_USUARIO, {
+            metodo: 'POST',
+            corpo: { anu_title: titulo, anu_desc: descricao, anu_price: preco, cat_id: categoriaId }
+        });
+        return normalizar(dados);
+    },
+
+    async adicionarFotos(id, arquivos) {
+        const formData = new FormData();
+        formData.append('id', id);
+        for (const arquivo of arquivos) formData.append('fotos', arquivo);
+        const dados = await Http.requisitar(`${Config.ROTA_USUARIO}/addFoto`, { metodo: 'POST', arquivos: formData });
+        return normalizar(dados);
+    },
+
+    async perguntar(anuncioId, texto) {
+        await Http.requisitar(`${Config.ROTA_USUARIO}/ask`, { metodo: 'POST', form: { id: anuncioId, texto } });
+    },
+
+    async responder(perguntaId, texto) {
+        await Http.requisitar(`${Config.ROTA_USUARIO}/respond`, { metodo: 'POST', form: { id: perguntaId, texto } });
+    },
+
     async excluir(id) {
-        await Http.requisitar(`${Config.ROTA_ADM_ANUNCIO}?id=${encodeURIComponent(id)}`, { metodo: 'DELETE' });
+        await Http.requisitar(`${this.base()}?id=${encodeURIComponent(id)}`, { metodo: 'DELETE' });
     }
 };

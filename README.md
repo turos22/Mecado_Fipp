@@ -92,7 +92,7 @@ Se o Java 25 não estiver instalado no sistema, aponte para o JDK do projeto ant
 | `a porta 5500 já está em uso` | Use outra: `PORTA_FRONT=5600 ./iniciar.sh`. No Windows, feche o que usa a 5500. |
 | Windows avisa "app não reconhecido" ou o antivírus bloqueia o `adaptar.exe` | O `.exe` não é assinado digitalmente. Se preferir, recompile você mesmo (abaixo) ou use o `adaptar.sh` no Git Bash/WSL. |
 | Login dá "Usuário ou senha inválidos" para um usuário seu | Senha em texto puro não funciona mais: grave o hash BCrypt (veja abaixo). |
-| Anúncios aparecem como "Sem foto" | Esperado: o backend ainda não serve os arquivos de foto. |
+| Anúncios aparecem como "Sem foto" | Os anúncios de teste do banco apontam para arquivos que não existem. Fotos enviadas por `addFoto` ficam em `backend/uploads/fotos` e aparecem normalmente. |
 
 ## Segredos (o repositório é público)
 
@@ -119,6 +119,11 @@ GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ../../adaptar.e
 |---|---|
 | `POST apis/autenticacao/login` (`usuario`, `senha`) | todos |
 | `GET apis/usuario/get-filter/{texto}` · `get-id/{id}` | logado |
+| `POST apis/usuario` (JSON: `anu_title`, `anu_desc`, `anu_price`, `cat_id`) | logado (o dono é o do token) |
+| `POST apis/usuario/addFoto` (formData: `id` do anúncio, `fotos`) | dono do anúncio |
+| `DELETE apis/usuario?id=` | dono do anúncio |
+| `POST apis/usuario/ask` (`id` do anúncio, `texto`) | logado, em anúncio de outro usuário |
+| `POST apis/usuario/respond` (`id` da pergunta, `texto`) | dono do anúncio da pergunta |
 | `GET apis/usuario/meus` · `PUT apis/usuario/meus/{id}` | dono do anúncio |
 | `GET apis/adm/anuncio/get-filter/{texto}` · `get-id/{id}` · `DELETE ?id=` | administrador |
 
