@@ -1,4 +1,5 @@
-// Conversa com apis/adm/categoria (só administrador).
+// Conversa com apis/adm/categoria. Criar, alterar, excluir e buscar: só administrador.
+// listar (get-all) também é liberado para usuário comum: o formulário de anúncio usa a lista.
 //
 // JSON de uma categoria no backend (nomes iguais às colunas do banco): { cat_id, cat_name }
 // Aqui ele vira { id, nome }, para as páginas não dependerem dos nomes do banco.

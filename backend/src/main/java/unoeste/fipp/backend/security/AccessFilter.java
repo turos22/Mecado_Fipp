@@ -23,7 +23,7 @@ public class AccessFilter implements Filter {
             return;
         }
         Object nivel = claims.get("nivel");
-        if (!permitido(nivel == null ? null : nivel.toString(), request.getRequestURI())) {
+        if (!permitido(nivel == null ? null : nivel.toString(), request.getMethod(), request.getRequestURI())) {
             negar(response, 403, "Acesso negado", "Seu nível não permite acessar esta rota");
             return;
         }
@@ -36,11 +36,18 @@ public class AccessFilter implements Filter {
         filterChain.doFilter(servletRequest, servletResponse);
     }
 
-    // admin: /apis/adm e /apis/usuario; usuario: só /apis/usuario; o resto é negado
-    private boolean permitido(String nivel, String rota) {
+    // Única rota de /apis/adm liberada também para usuário comum: só LER a lista de categorias,
+    // que o formulário de anúncio precisa. Criar, alterar, excluir e get-id continuam só do admin.
+    private static final String LISTA_DE_CATEGORIAS = "/apis/adm/categoria/get-all";
+
+    // admin: /apis/adm e /apis/usuario; usuario: /apis/usuario + GET da lista de categorias; o resto é negado
+    private boolean permitido(String nivel, String metodo, String rota) {
         if (nivel == null) return false;
-        if (nivel.equals("admin") && daRota(rota, "/apis/adm")) return true;
-        return (nivel.equals("admin") || nivel.equals("usuario")) && daRota(rota, "/apis/usuario");
+        boolean admin = nivel.equals("admin");
+        boolean logado = admin || nivel.equals("usuario");
+        if (admin && daRota(rota, "/apis/adm")) return true;
+        if (logado && "GET".equals(metodo) && rota.equals(LISTA_DE_CATEGORIAS)) return true;
+        return logado && daRota(rota, "/apis/usuario");
     }
 
     private boolean daRota(String rota, String prefixo) {

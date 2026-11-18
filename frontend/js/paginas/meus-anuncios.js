@@ -66,13 +66,10 @@ if (Sessao.exigirLogin()) {
             </div>`).join('');
     }
 
-    // As categorias não têm rota própria no backend: saem dos anúncios que já existem
+    // Categorias vêm do banco (GET apis/adm/categoria/get-all, liberado para leitura a qualquer usuário logado).
+    // Busca de novo a cada abertura do formulário, para já trazer as categorias que o administrador acabou de criar.
     async function carregarCategorias() {
-        if (estado.categorias.length) return;
-        const todos = await AnuncioController.filtrar('');
-        const mapa = new Map();
-        for (const a of todos) if (a.categoria.id !== null) mapa.set(a.categoria.id, a.categoria.nome ?? 'Categoria ' + a.categoria.id);
-        estado.categorias = [...mapa].map(([id, nome]) => ({ id, nome })).sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR'));
+        estado.categorias = await CategoriaController.listar();
     }
 
     // id = null abre o formulário vazio (anúncio novo); com id, abre o anúncio para editar

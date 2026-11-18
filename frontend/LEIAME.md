@@ -50,7 +50,7 @@ Regra: a página chama o `controller`, o `controller` chama o `Http`. A página 
 | Perguntar | `POST apis/usuario/ask` (`id` do anúncio + `texto`); só em anúncio de outro usuário |
 | Responder | `POST apis/usuario/respond` (`id` da **pergunta** + `texto`); só em anúncio seu |
 | Excluir | `DELETE apis/usuario?id={id}` (só o próprio anúncio) ou, para o administrador, `DELETE apis/adm/anuncio?id={id}` (qualquer um) |
-| Categorias (só administrador) | `GET apis/adm/categoria/get-all` · `POST` e `PUT apis/adm/categoria` com `{cat_id, cat_name}` · `DELETE apis/adm/categoria?id={id}` (400 se houver anúncios) |
+| Categorias (administrador; o `get-all` também para usuário comum, no formulário de anúncio) | `GET apis/adm/categoria/get-all` · `POST` e `PUT apis/adm/categoria` com `{cat_id, cat_name}` · `DELETE apis/adm/categoria?id={id}` (400 se houver anúncios) |
 
 O token vai no cabeçalho `Authorization`, sem `Bearer` (é o que o `AccessFilter` do backend lê).
 
@@ -67,7 +67,7 @@ O token vai no cabeçalho `Authorization`, sem `Bearer` (é o que o `AccessFilte
   ```
   Se o backend usar outros nomes, ajuste só a função `normalizar` em `js/controller/anuncioController.js`.
 - **Fotos:** o front baixa de `Config.URL_FOTOS + fot_file`. Sem a imagem, aparece uma imagem cinza "Sem foto". O front só deixa escolher JPG, PNG, GIF ou WEBP de até 5 MB (o backend confere de novo).
-- **Categorias:** o administrador gerencia em `categorias.html` (rotas `apis/adm/categoria`). O formulário de anúncio continua montando a lista a partir dos anúncios existentes, porque usuário comum não acessa `apis/adm`.
+- **Categorias:** o administrador gerencia em `categorias.html` (rotas `apis/adm/categoria`). O formulário de anúncio busca a lista em `GET apis/adm/categoria/get-all`, a única rota de `apis/adm` que o `AccessFilter` libera também para usuário comum (só leitura).
 - **Perguntas e respostas:** quem não é o dono vê o campo "Faça uma pergunta"; o dono vê o campo "Responder" nas perguntas sem resposta. O front só esconde os controles: quem barra é o backend.
 - **Token:** claims `nivel` (`admin` ou `usuario`, vindo de `usr_level` 1/2 da tabela `usuario`) e `usr_id`. O backend responde 401 (sem token/inválido/expirado) e 403 (nível sem permissão).
 - **Nível do token:** o claim `nivel` deve ser `admin` ou `usuario`. Só `admin` vê o botão de excluir.

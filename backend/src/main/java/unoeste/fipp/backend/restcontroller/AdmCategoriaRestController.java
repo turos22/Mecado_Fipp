@@ -55,7 +55,8 @@ public class AdmCategoriaRestController {
     public ResponseEntity<Object> alterarCategoria(@RequestBody Categoria categoria)
     {
         try {
-            return categoriaService.alterar(categoria).<ResponseEntity<Object>>map(ResponseEntity::ok).orElseGet(() -> naoEncontrado(categoria.getCatId()));
+            return categoriaService.alterar(categoria).
+                    <ResponseEntity<Object>>map(ResponseEntity::ok).orElseGet(() -> naoEncontrado(categoria.getCatId()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new Erro("Dados invalidos",e.getMessage()));
         }
