@@ -1,7 +1,11 @@
 package unoeste.fipp.backend.restcontroller;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import unoeste.fipp.backend.entities.EdicaoAnuncio;
 import unoeste.fipp.backend.entities.Erro;
 import unoeste.fipp.backend.security.AccessFilter;
@@ -22,6 +26,15 @@ public class UsuarioRestController {
     public ResponseEntity<Object> novoAnuncio(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
                                               @RequestBody EdicaoAnuncio dados){
         return ResponseEntity.ok(anuncioService.criar(usrId, dados));
+    }
+    //http://localhost:8080/apis/usuario/addFoto  (formData: id = anúncio, fotos = um ou mais arquivos)
+    @PostMapping("addFoto")
+    public ResponseEntity<Object> addFoto(@RequestAttribute(AccessFilter.ATRIBUTO_USR_ID) Integer usrId,
+                                          @RequestParam Integer id,
+                                          @RequestParam(required = false) List<MultipartFile> fotos) throws IOException {
+        return anuncioService.adicionarFotos(usrId, id, fotos)
+                .<ResponseEntity<Object>>map(ResponseEntity::ok)
+                .orElseGet(() -> naoEncontrado(id));
     }
     //http://localhost:8080/apis/usuario/get-id/2
     @GetMapping("get-id/{id}")

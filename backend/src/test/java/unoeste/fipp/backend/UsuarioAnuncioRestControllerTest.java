@@ -5,24 +5,33 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import unoeste.fipp.backend.security.JWTTokenProvider;
@@ -35,6 +44,7 @@ import unoeste.fipp.backend.security.JWTTokenProvider;
 class UsuarioAnuncioRestControllerTest {
 
     private static final String BASE = "/apis/usuario";
+    private static final Path PASTA_FOTOS = Path.of("uploads", "fotos");
     private static final int DONO = 9101, OUTRO = 9102, CAT = 9101, CAT2 = 9102;
 
     @Autowired
@@ -59,7 +69,19 @@ class UsuarioAnuncioRestControllerTest {
         sql("insert into foto_anuncio (fot_file, anu_id) values ('a.jpg', 9101)");
     }
 
+    // fotos gravadas pelos testes saem do disco (o banco é desfeito pelo @Transactional, o disco não)
+    @AfterEach
+    void limparFotos() throws Exception {
+        for (Object nome : em.createNativeQuery("select fot_file from foto_anuncio where anu_id in (9101, 9102, 9103)").getResultList())
+            Files.deleteIfExists(PASTA_FOTOS.resolve(String.valueOf(nome)));
+    }
+
     private ResultActions como(int usrId, MockHttpServletRequestBuilder r) throws Exception {
+        return mvc.perform(r.header("Authorization", JWTTokenProvider.createToken("t" + usrId, "usuario", usrId)));
+    }
+
+    // no Spring 7 o builder de multipart não herda de MockHttpServletRequestBuilder
+    private ResultActions como(int usrId, MockMultipartHttpServletRequestBuilder r) throws Exception {
         return mvc.perform(r.header("Authorization", JWTTokenProvider.createToken("t" + usrId, "usuario", usrId)));
     }
 
@@ -221,5 +243,46 @@ class UsuarioAnuncioRestControllerTest {
         como(DONO, novo("{\"anu_title\":\"t\",\"anu_desc\":\"d\",\"anu_price\":1,\"cat_id\":987654}")).andExpect(status().isBadRequest());
         como(DONO, novo("isto não é json")).andExpect(status().isBadRequest());
         assertEquals("0", coluna("select count(*) from anuncio where anu_title = 't'"));
+    }
+
+    // ---- POST fotos (addFoto)
+
+    private MockMultipartHttpServletRequestBuilder fotos(String id, MockMultipartFile... arquivos) {
+        var r = multipart(BASE + "/addFoto").param("id", id);
+        for (MockMultipartFile a : arquivos) r.file(a);
+        return r;
+    }
+
+    private MockMultipartFile arquivo(String tipo) {
+        return new MockMultipartFile("fotos", "../../x.bin", tipo, new byte[]{1, 2, 3});
+    }
+
+    @Test
+    void donoEnviaFotosEElasFicamNoDiscoENoAnuncio() throws Exception {
+        como(DONO, fotos("9102", arquivo("image/jpeg"), arquivo("image/png"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.anu_id").value(9102))
+                .andExpect(jsonPath("$.fotos", hasSize(2)))
+                .andExpect(jsonPath("$.fotos[0].fot_file").value(org.hamcrest.Matchers.endsWith(".jpg")))
+                .andExpect(jsonPath("$.fotos[1].fot_file").value(org.hamcrest.Matchers.endsWith(".png")));
+
+        List<?> nomes = em.createNativeQuery("select fot_file from foto_anuncio where anu_id = 9102").getResultList();
+        assertEquals(2, nomes.size());
+        for (Object nome : nomes) assertTrue(Files.exists(PASTA_FOTOS.resolve(String.valueOf(nome))));
+    }
+
+    @Test
+    void fotoDeAnuncioDeOutroOuInexistenteDa404SemGravar() throws Exception {
+        como(DONO, fotos("9103", arquivo("image/jpeg"))).andExpect(status().isNotFound());
+        como(DONO, fotos("99999", arquivo("image/jpeg"))).andExpect(status().isNotFound());
+        assertEquals("0", coluna("select count(*) from foto_anuncio where anu_id = 9103"));
+    }
+
+    @Test
+    void fotoInvalidaDa400SemGravarNada() throws Exception {
+        como(DONO, fotos("9102", arquivo("image/jpeg"), arquivo("text/html"))).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.texto").exists());
+        como(DONO, fotos("9102")).andExpect(status().isBadRequest());
+        como(DONO, fotos("9102", new MockMultipartFile("fotos", "v.jpg", "image/jpeg", new byte[0]))).andExpect(status().isBadRequest());
+        assertEquals("0", coluna("select count(*) from foto_anuncio where anu_id = 9102"));
     }
 }

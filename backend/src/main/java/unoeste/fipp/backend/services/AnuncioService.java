@@ -1,19 +1,28 @@
 package unoeste.fipp.backend.services;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import unoeste.fipp.backend.entities.Anuncio;
 import unoeste.fipp.backend.entities.EdicaoAnuncio;
+import unoeste.fipp.backend.entities.FotoAnuncio;
 import unoeste.fipp.backend.repositories.AnuncioRepository;
 
 @Service
@@ -21,6 +30,11 @@ public class AnuncioService {
     public static final String FILTRO_TODOS = "todos";
 
     private static final BigDecimal PRECO_MAXIMO = new BigDecimal("999999999.9"); //numeric(10,1)
+
+    //as fotos ficam aqui (relativo à pasta do backend) e saem em /fotos/{fot_file}, ver spring.web.resources.static-locations
+    private static final Path PASTA_FOTOS = Path.of("uploads", "fotos");
+    private static final Map<String, String> EXTENSOES = Map.of(
+            "image/jpeg", ".jpg", "image/png", ".png", "image/gif", ".gif", "image/webp", ".webp");
 
     private final AnuncioRepository anuncioRepository;
 
@@ -82,6 +96,42 @@ public class AnuncioService {
         return Optional.of(anuncio);
     }
 
+    // Grava as fotos no disco e no anúncio, SE ele for do usuário. Vazio = não existe ou é de outro.
+    // Foto inválida (vazia ou que não é JPG/PNG/GIF/WEBP): IllegalArgumentException; nesse caso nada é gravado.
+    @Transactional
+    public Optional<Anuncio> adicionarFotos(Integer usrId, Integer anuId, List<MultipartFile> fotos) throws IOException {
+        Optional<Anuncio> encontrado = anuncioRepository.findByAnuIdAndUsrId(anuId, usrId);
+        if (encontrado.isEmpty()) return encontrado;
+        List<MultipartFile> arquivos = fotos == null ? List.of() : fotos.stream().filter(f -> !f.isEmpty()).toList();
+        if (arquivos.isEmpty()) throw new IllegalArgumentException("Envie ao menos uma foto");
+        for (MultipartFile arquivo : arquivos)
+            if (extensao(arquivo) == null) throw new IllegalArgumentException("Só são aceitas fotos JPG, PNG, GIF ou WEBP");
+
+        Anuncio anuncio = encontrado.get();
+        Files.createDirectories(PASTA_FOTOS);
+        List<String> gravados = new ArrayList<>();
+        try {
+            for (MultipartFile arquivo : arquivos) {
+                //nome sorteado (cabe em fot_file, 20): o nome enviado pelo cliente nunca vira caminho no disco
+                String nome = UUID.randomUUID().toString().replace("-", "").substring(0, 12) + extensao(arquivo);
+                try (InputStream entrada = arquivo.getInputStream()) {
+                    Files.copy(entrada, PASTA_FOTOS.resolve(nome));
+                }
+                gravados.add(nome);
+                FotoAnuncio foto = new FotoAnuncio();
+                foto.setFotFile(nome);
+                foto.setAnuncio(anuncio);
+                anuncio.getFotos().add(foto);
+            }
+            anuncioRepository.flush();
+        } catch (IOException | RuntimeException e) {
+            gravados.forEach(this::apagarArquivo); //não deixa foto órfã no disco
+            throw e;
+        }
+        carregarFotosEPerguntas(anuncio);
+        return Optional.of(anuncio);
+    }
+
     @Transactional
     public boolean excluir(Integer id) {
         if (!anuncioRepository.existsById(id)) return false;
@@ -105,6 +155,20 @@ public class AnuncioService {
         anuncio.setAnuDesc(dados.descricao());
         anuncio.setAnuPrice(preco);
         anuncio.setCatId(dados.categoria());
+    }
+
+    //null = tipo de arquivo não aceito
+    private String extensao(MultipartFile arquivo) {
+        String tipo = arquivo.getContentType();
+        return tipo == null ? null : EXTENSOES.get(tipo.toLowerCase(Locale.ROOT));
+    }
+
+    private void apagarArquivo(String nome) {
+        try {
+            Files.deleteIfExists(PASTA_FOTOS.resolve(Path.of(nome).getFileName()));
+        } catch (IOException e) {
+            //arquivo que não saiu não pode impedir a exclusão do anúncio
+        }
     }
 
     private void carregarFotosEPerguntas(Anuncio anuncio) {
