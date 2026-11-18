@@ -17,15 +17,16 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div>
             <h1 class="h3 fw-bold mb-0">Meus anúncios</h1>
-            <p class="text-muted mb-0">Só você vê esta área. Aqui dá para corrigir título, descrição, preço e categoria.</p>
+            <p class="text-muted mb-0">Só você vê esta área. Aqui dá para criar anúncios, corrigir os dados, enviar fotos e excluir.</p>
         </div>
+        <button id="btn-novo" type="button" class="btn btn-mf"><i class="bi bi-plus-lg me-1"></i>Novo anúncio</button>
     </div>
 
     <div id="aviso" class="mb-3" aria-live="polite"></div>
     <div id="lista" class="row row-cols-1 row-cols-md-2 g-3"></div>
 </main>
 
-<!-- Edição de um anúncio -->
+<!-- Criação e edição de um anúncio (o mesmo formulário) -->
 <div class="modal fade" id="modal-editar" tabindex="-1" aria-labelledby="titulo-modal-editar" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="form-editar" class="modal-content" novalidate>
@@ -53,6 +54,11 @@
                     <label for="campo-descricao" class="form-label">Descrição</label>
                     <textarea id="campo-descricao" class="form-control" rows="4"></textarea>
                 </div>
+                <div class="mb-3">
+                    <label for="campo-fotos" class="form-label">Fotos</label>
+                    <input id="campo-fotos" type="file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                    <div class="form-text">JPG, PNG, GIF ou WEBP, até 5 MB cada. Fotos novas se somam às que o anúncio já tem.</div>
+                </div>
                 <div id="erro-edicao" aria-live="polite"></div>
             </div>
             <div class="modal-footer">
@@ -60,6 +66,26 @@
                 <button id="btn-salvar" type="submit" class="btn btn-mf">Salvar</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Confirmação de exclusão do próprio anúncio -->
+<div class="modal fade" id="modal-excluir" tabindex="-1" aria-labelledby="titulo-modal-excluir" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="titulo-modal-excluir">Excluir anúncio?</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Excluir <strong id="nome-excluir"></strong>? As fotos e as perguntas também somem. Esta ação não pode ser desfeita.</p>
+                <div id="erro-exclusao" class="mt-3" aria-live="polite"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button id="btn-confirmar-exclusao" type="button" class="btn btn-danger">Sim, excluir</button>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -1,5 +1,4 @@
-// Visualização de um anúncio (paginas/anuncio.html?id=N)
-// Usa: GET get-id/{id} para mostrar e, só para o administrador, DELETE para excluir.
+
 if (Sessao.exigirLogin()) {
     Cabecalho.montar();
     const conteudo = document.getElementById('conteudo');
@@ -17,15 +16,46 @@ if (Sessao.exigirLogin()) {
         try {
             desenhar(await AnuncioController.buscar(id));
         } catch (erro) {
-            if (erro.status === 401) return; // a sessão já mandou para o login
-            // 404 com "texto" é o sistema dizendo que o anúncio não existe. 404 sem "texto" é o Spring
-            // dizendo que a ROTA não existe (o backend ainda não implementou o get-id).
+            if (erro.status === 401) return;
             const anuncioInexistente = erro.status === 404 && erro.dados && erro.dados.texto;
             if (anuncioInexistente) Util.alerta(conteudo, 'warning', 'Anúncio não encontrado. Ele pode ter sido excluído.');
             else if (erro.status === 404) Util.alerta(conteudo, 'danger', `O servidor ainda não tem a rota GET ${AnuncioController.base()}/get-id/{id} (erro 404).`);
             else Util.alerta(conteudo, 'danger', erro.message);
         }
     }
+
+    conteudo.addEventListener('error', evento => {
+        if (evento.target.tagName === 'IMG' && evento.target.src !== Util.SEM_FOTO) evento.target.src = Util.SEM_FOTO;
+    }, true);
+
+    conteudo.addEventListener('submit', async evento => {
+        const formulario = evento.target;
+        const ehResposta = formulario.classList.contains('form-resposta');
+        if (!ehResposta && formulario.id !== 'form-pergunta') return;
+        evento.preventDefault();
+
+        const aviso = document.getElementById('aviso-perguntas');
+        const texto = formulario.elements.texto.value.trim();
+        if (!texto) {
+            Util.alerta(aviso, 'warning', ehResposta ? 'Escreva a resposta.' : 'Escreva a pergunta.');
+            return;
+        }
+        const botao = formulario.querySelector('button[type=submit]');
+        const rotulo = botao.textContent;
+        botao.disabled = true;
+        botao.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>';
+        try {
+            if (ehResposta) await AnuncioController.responder(formulario.dataset.pergunta, texto);
+            else await AnuncioController.perguntar(id, texto);
+            await carregar(id);
+            Util.alerta(document.getElementById('aviso-perguntas'), 'success', ehResposta ? 'Resposta enviada.' : 'Pergunta enviada.');
+        } catch (erro) {
+            if (erro.status === 401 || erro.status === 403) return; // a sessão já mandou para o login
+            Util.alerta(aviso, 'danger', erro.message);
+            botao.disabled = false;
+            botao.textContent = rotulo;
+        }
+    });
 
     function desenhar(a) {
         document.title = `${a.titulo} · Mercado FIPP`;
@@ -46,15 +76,34 @@ if (Sessao.exigirLogin()) {
             <button class="carousel-control-next" type="button" data-bs-target="#carrossel" data-bs-slide="next">
                 <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Próxima foto</span></button>` : '';
 
+        // Só para esconder/mostrar controles. O backend recusa pergunta no próprio anúncio e resposta em anúncio alheio.
+        const souDono = a.vendedorId !== null && Sessao.usuarioId() !== null && String(a.vendedorId) === String(Sessao.usuarioId());
+
+        const semResposta = p => souDono
+            ? `<form class="form-resposta d-flex gap-2 mt-2 ms-4" data-pergunta="${Util.esc(p.id)}" novalidate>
+                   <input name="texto" class="form-control form-control-sm" placeholder="Escreva sua resposta" aria-label="Resposta">
+                   <button type="submit" class="btn btn-sm btn-mf">Responder</button>
+               </form>`
+            : '<div class="text-muted small mt-2 ms-4">Aguardando resposta do vendedor.</div>';
+
         const perguntas = a.perguntas.length ? a.perguntas.map(p => `
             <li class="list-group-item py-3">
                 <div><i class="bi bi-chat-left-text me-2 text-primary"></i>${Util.esc(p.texto)}</div>
                 ${p.resposta
                     ? `<div class="resposta mt-2"><i class="bi bi-arrow-return-right me-2"></i>${Util.esc(p.resposta)}</div>`
-                    : '<div class="text-muted small mt-2 ms-4">Aguardando resposta do vendedor.</div>'}
+                    : semResposta(p)}
             </li>`).join('') : '<li class="list-group-item text-muted py-3">Ninguém perguntou nada ainda.</li>';
 
-        const botaoExcluir = Sessao.ehAdmin() ? `
+        const formPergunta = souDono ? '' : `
+            <div class="card-body border-top">
+                <form id="form-pergunta" novalidate>
+                    <label for="campo-pergunta" class="form-label fw-semibold">Faça uma pergunta ao vendedor</label>
+                    <textarea id="campo-pergunta" name="texto" class="form-control" rows="2"></textarea>
+                    <button type="submit" class="btn btn-mf mt-2">Perguntar</button>
+                </form>
+            </div>`;
+
+        const botaoExcluir = Sessao.ehAdmin() || souDono ? `
             <button id="btn-excluir" type="button" class="btn btn-outline-danger w-100 mt-3" data-bs-toggle="modal" data-bs-target="#modal-excluir">
                 <i class="bi bi-trash3 me-2"></i>Excluir anúncio
             </button>` : '';
@@ -97,14 +146,12 @@ if (Sessao.exigirLogin()) {
                 <div class="col-12 col-lg-7">
                     <div class="card">
                         <div class="card-header bg-white"><h2 class="h5 mb-0">Perguntas e respostas</h2></div>
+                        <div id="aviso-perguntas" class="px-3 pt-3" aria-live="polite"></div>
                         <ul class="list-group list-group-flush">${perguntas}</ul>
+                        ${formPergunta}
                     </div>
                 </div>
             </div>`;
-
-        conteudo.addEventListener('error', evento => {
-            if (evento.target.tagName === 'IMG' && evento.target.src !== Util.SEM_FOTO) evento.target.src = Util.SEM_FOTO;
-        }, true);
 
         const botaoConfirmar = document.getElementById('btn-confirmar-exclusao');
         botaoConfirmar.onclick = async () => {
